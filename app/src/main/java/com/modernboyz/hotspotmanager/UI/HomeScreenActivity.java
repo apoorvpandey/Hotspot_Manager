@@ -12,13 +12,11 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 
 public class HomeScreenActivity extends AppCompatActivity {
 
-    String TAG = "kkkkkkkkkkkkkkk";
     List<IPAndMacModel> list = new ArrayList<>();
 
 
@@ -29,8 +27,6 @@ public class HomeScreenActivity extends AppCompatActivity {
 
 
         getListOfConnectedDevices();
-
-//        trial();
 
     }
 
@@ -52,10 +48,7 @@ public class HomeScreenActivity extends AppCompatActivity {
                     String[] arrayStoredIpAndMacAddress = dataFromTerminalCommand.split("\\s+");
                     if (arrayStoredIpAndMacAddress.length >= 6 && arrayStoredIpAndMacAddress[0] != null &&
                             !arrayStoredIpAndMacAddress[0].contains(":") && arrayStoredIpAndMacAddress[4] != null) {
-                        Log.i(TAG, dataFromTerminalCommand);
-                        for (String sting : arrayStoredIpAndMacAddress) {
-                            Log.i(TAG, "getListOfConnectedDevices: " + sting);
-                        }
+
                         IPAndMacModel ipAndMacModel = new IPAndMacModel(arrayStoredIpAndMacAddress[0], arrayStoredIpAndMacAddress[4]);
                         list.add(ipAndMacModel);
 
@@ -68,9 +61,6 @@ public class HomeScreenActivity extends AppCompatActivity {
                         values.clear();
                         values.addAll(hashSet);
 
-                        for (IPAndMacModel data : values) {
-                            Log.i("mmmmmmmmmm", "getListOfConnectedDevices: " + data.getIpAddress());
-                        }
                         Log.i("ip_address", arrayStoredIpAndMacAddress[0]);
                         Log.i("mac_address", arrayStoredIpAndMacAddress[4]);
                     }
@@ -87,7 +77,7 @@ public class HomeScreenActivity extends AppCompatActivity {
 
     }
 
-    private void trial() {
+    /*private void trial() {
 
         try {
             Process exec = Runtime.getRuntime().exec("ip neighbor");
@@ -129,6 +119,6 @@ public class HomeScreenActivity extends AppCompatActivity {
         }
 
 
-    }
+    }*/
 
 }
