@@ -1,37 +1,90 @@
 package com.modernboyz.hotspotmanager.UI;
 
+import android.content.Context;
+import android.net.wifi.WifiManager;
 import android.os.Bundle;
-import android.util.Log;
+import android.os.Handler;
+import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.material.snackbar.Snackbar;
+import com.modernboyz.hotspotmanager.Adapter.ListOfDevicesAdapter;
 import com.modernboyz.hotspotmanager.Model.IPAndMacModel;
 import com.modernboyz.hotspotmanager.R;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 
 public class HomeScreenActivity extends AppCompatActivity {
 
     List<IPAndMacModel> list = new ArrayList<>();
+    RecyclerView recyclerView;
+    RecyclerView.Adapter adapter;
+    TextView totalDevices;
+    Runnable mRunnable;
+    int refreshFrequency = 5; // in seconds 1 = 1 second
+    String TAG = "kkkkkkkkkkkkkk";
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home_screen);
+        recyclerView = findViewById(R.id.recyclerView);
+        totalDevices = findViewById(R.id.totalDevices);
 
+        reExecuteAfterSpecificFrequency();
 
-        getListOfConnectedDevices();
-
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
     }
+
+    private void checkIfApIsOn() {
+        if (isApOn(this)) {
+            getListOfConnectedDevices();
+        } else {
+            Snackbar snackbar = Snackbar.make(findViewById(R.id.parentLayout), "Hotspot is off!", Snackbar.LENGTH_LONG);
+            snackbar.show();
+        }
+    }
+
+    public boolean isApOn(Context context) {
+        WifiManager wifimanager = (WifiManager) context.getApplicationContext().getSystemService(WIFI_SERVICE);
+        try {
+            Method method = wifimanager.getClass().getDeclaredMethod("isWifiApEnabled");
+            method.setAccessible(true);
+            return (Boolean) method.invoke(wifimanager);
+        } catch (Throwable ignored) {
+        }
+        return false;
+    }
+
+   /* public boolean configApState(Context context) {
+        WifiManager wifimanager = (WifiManager) context.getApplicationContext().getSystemService(WIFI_SERVICE);
+        WifiConfiguration wificonfiguration = null;
+        try {
+            // if WiFi is on, turn it off
+            if (!isApOn(context)) {
+                wifimanager.setWifiEnabled(false);
+            }
+            Method method = wifimanager.getClass().getMethod("setWifiApEnabled", WifiConfiguration.class, boolean.class);
+            method.invoke(wifimanager, wificonfiguration, !isApOn(context));
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }*/
 
 
     private void getListOfConnectedDevices() {
+        list.clear();
 
         try {
             Process exec = Runtime.getRuntime().exec("ip neighbor");
@@ -51,18 +104,33 @@ public class HomeScreenActivity extends AppCompatActivity {
 
                         IPAndMacModel ipAndMacModel = new IPAndMacModel(arrayStoredIpAndMacAddress[0], arrayStoredIpAndMacAddress[4]);
                         list.add(ipAndMacModel);
+                        if (!list.isEmpty()) {
+                            totalDevices.setText(String.valueOf(list.size()));
+                            adapter = new ListOfDevicesAdapter(this, list);
+                            recyclerView.setAdapter(adapter);
+                        } else {
+                            Snackbar snackbar = Snackbar.make(findViewById(R.id.parentLayout), "List sf empty", Snackbar.LENGTH_LONG);
+                            snackbar.show();
+                        }
 
-                        ArrayList<IPAndMacModel> values = new ArrayList<>();
+
+                        // to remove duplicates from the list
+                     /*   ArrayList<IPAndMacModel> values = new ArrayList<>();
                         for (int i = 0; i <= list.size(); i++) {
                             values.add(ipAndMacModel);
                         }
+
                         HashSet<IPAndMacModel> hashSet = new HashSet<>();
                         hashSet.addAll(values);
                         values.clear();
-                        values.addAll(hashSet);
-
-                        Log.i("ip_address", arrayStoredIpAndMacAddress[0]);
-                        Log.i("mac_address", arrayStoredIpAndMacAddress[4]);
+                        values.addAll(hashSet);*/
+//
+//                        Log.i("ip_address", arrayStoredIpAndMacAddress[0]);
+//                        Log.i("mac_address", arrayStoredIpAndMacAddress[4]);
+//
+//                        for (IPAndMacModel data : list) {
+//                            Log.i(TAG, "getListOfConnectedDevices: " + data.getIpAddress());
+//                        }
                     }
 
                 }
@@ -75,6 +143,22 @@ public class HomeScreenActivity extends AppCompatActivity {
             e.printStackTrace();
         }
 
+    }
+
+    private void reExecuteAfterSpecificFrequency() {
+
+        final Handler mHandler = new Handler();
+
+        mRunnable = new Runnable() {
+
+            @Override
+            public void run() {
+                checkIfApIsOn();
+                //If you want to re call this method at a gap of x seconds then you can schedule  handler again
+                mHandler.postDelayed(mRunnable, refreshFrequency * 1000);
+            }
+        };
+        mHandler.postDelayed(mRunnable, 1 /*10 * 1000*/);//Execute after 10 Seconds
     }
 
     /*private void trial() {
@@ -120,5 +204,4 @@ public class HomeScreenActivity extends AppCompatActivity {
 
 
     }*/
-
 }
