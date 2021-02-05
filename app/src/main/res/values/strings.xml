@@ -3,4 +3,8 @@
     <string name="total_connected_devices">Total Connected Devices:</string>
     <string name="device_ip">Device IP:</string>
     <string name="device_mac">Device Mac:</string>
+    <string name="add_device">Add Device</string>
+    <string name="name">Name</string>
+    <string name="save_device">Save Device</string>
+    <string name="device_name">Device Name:</string>
 </resources>

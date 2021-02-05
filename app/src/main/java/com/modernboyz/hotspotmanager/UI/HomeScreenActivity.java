@@ -1,9 +1,16 @@
 package com.modernboyz.hotspotmanager.UI;
 
+import android.app.Dialog;
 import android.content.Context;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.os.Handler;
+import android.util.DisplayMetrics;
+import android.util.Log;
+import android.view.View;
+import android.view.Window;
+import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -12,6 +19,9 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.snackbar.Snackbar;
 import com.modernboyz.hotspotmanager.Adapter.ListOfDevicesAdapter;
+import com.modernboyz.hotspotmanager.Database.DataBaseHelper;
+import com.modernboyz.hotspotmanager.Interface.AddDevicePopup;
+import com.modernboyz.hotspotmanager.Model.DeviceModel;
 import com.modernboyz.hotspotmanager.Model.IPAndMacModel;
 import com.modernboyz.hotspotmanager.R;
 
@@ -22,7 +32,7 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
-public class HomeScreenActivity extends AppCompatActivity {
+public class HomeScreenActivity extends AppCompatActivity implements AddDevicePopup {
 
     List<IPAndMacModel> list = new ArrayList<>();
     RecyclerView recyclerView;
@@ -31,6 +41,7 @@ public class HomeScreenActivity extends AppCompatActivity {
     Runnable mRunnable;
     int refreshFrequency = 5; // in seconds 1 = 1 second
     String TAG = "kkkkkkkkkkkkkk";
+    DataBaseHelper db;
 
 
     @Override
@@ -39,6 +50,11 @@ public class HomeScreenActivity extends AppCompatActivity {
         setContentView(R.layout.activity_home_screen);
         recyclerView = findViewById(R.id.recyclerView);
         totalDevices = findViewById(R.id.totalDevices);
+        db = new DataBaseHelper(this);
+
+        for (DeviceModel g : db.getDevicesNameAndMac()) {
+            Log.i(TAG, "onCreate: " + g.getName());
+        }
 
         reExecuteAfterSpecificFrequency();
 
@@ -46,7 +62,7 @@ public class HomeScreenActivity extends AppCompatActivity {
     }
 
     private void checkIfApIsOn() {
-        if (isApOn(this)) {
+        if (isApOn(HomeScreenActivity.this)) {
             getListOfConnectedDevices();
         } else {
             Snackbar snackbar = Snackbar.make(findViewById(R.id.parentLayout), "Hotspot is off!", Snackbar.LENGTH_LONG);
@@ -84,6 +100,10 @@ public class HomeScreenActivity extends AppCompatActivity {
 
 
     private void getListOfConnectedDevices() {
+
+        // todo showNotification();
+
+
         list.clear();
 
         try {
@@ -106,7 +126,7 @@ public class HomeScreenActivity extends AppCompatActivity {
                         list.add(ipAndMacModel);
                         if (!list.isEmpty()) {
                             totalDevices.setText(String.valueOf(list.size()));
-                            adapter = new ListOfDevicesAdapter(this, list);
+                            adapter = new ListOfDevicesAdapter(this, list, this);
                             recyclerView.setAdapter(adapter);
                         } else {
                             Snackbar snackbar = Snackbar.make(findViewById(R.id.parentLayout), "List sf empty", Snackbar.LENGTH_LONG);
@@ -145,10 +165,21 @@ public class HomeScreenActivity extends AppCompatActivity {
 
     }
 
+   /* private void showNotification() {
+        ComponentName componentName = new ComponentName(HomeScreenActivity.this, JobScheduler.class);
+        JobInfo jobInfo = new JobInfo.Builder(1, componentName)
+                .addTriggerContentUri()
+                .setPersisted(true)
+                .build();
+
+        JobScheduler scheduler = (JobScheduler) getSystemService(JOB_SCHEDULER_SERVICE);
+        scheduler.schedule(jobInfo);
+
+
+    }*/
+
     private void reExecuteAfterSpecificFrequency() {
-
         final Handler mHandler = new Handler();
-
         mRunnable = new Runnable() {
 
             @Override
@@ -159,6 +190,61 @@ public class HomeScreenActivity extends AppCompatActivity {
             }
         };
         mHandler.postDelayed(mRunnable, 1 /*10 * 1000*/);//Execute after 10 Seconds
+    }
+
+    @Override
+    public void showPopup(String macAddress) {
+        showAddDeviceToDatabasePopup(macAddress);
+    }
+
+    private void showAddDeviceToDatabasePopup(final String macAddress) {
+        DisplayMetrics displayMetrics = new DisplayMetrics();
+        getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
+        final EditText name;
+        Button addNameButton;
+
+        final Dialog dialog = new Dialog(this);
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        dialog.setCancelable(false);
+        dialog.setContentView(R.layout.add_device_popup);
+        name = dialog.findViewById(R.id.name);
+
+        addNameButton = dialog.findViewById(R.id.addDeviceButton);
+
+        addNameButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (name.getText().toString().isEmpty()) {
+                    name.setError("Required");
+                    name.requestFocus();
+                } else {
+                    if (db.getDevicesNameAndMac().isEmpty()) {
+                        addDeviceToDatabase(name.getText().toString(), macAddress);
+                    } else {
+                        for (DeviceModel currentItem : db.getDevicesNameAndMac()) {
+                            Log.i(TAG, "onClick: " + currentItem.getMacAddress());
+                            if (currentItem.getMacAddress().equalsIgnoreCase(macAddress)) {
+                                name.setError("Same device is already exists!");
+                                name.requestFocus();
+                            } else {
+                                Log.i(TAG, "onClick: " + "addDeviceToDatabase");
+                                addDeviceToDatabase(name.getText().toString(), macAddress);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        dialog.setCancelable(true);
+        dialog.show();
+    }
+
+    private void addDeviceToDatabase(String name, String macAddress) {
+        Log.i(TAG, "addDeviceToDatabase: ");
+        DeviceModel data = new DeviceModel(name, macAddress);
+        db.addDeviceToDatabase(data);
+        adapter.notifyDataSetChanged();
     }
 
     /*private void trial() {

@@ -7,4 +7,5 @@
     <color name="black">#000000</color>
     <color name="cream">#fefefe</color>
     <color name="grey">#919090</color>
+    <color name="textColor">#646464</color>
 </resources>
